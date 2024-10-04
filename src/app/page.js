@@ -1,95 +1,121 @@
-import Image from "next/image";
-import styles from "./page.module.css";
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import read from "./readCsv";
+import Link from 'next/link';
+import getCombinations from "./combinations";
 
 export default function Home() {
+  const [url, setUrl] = useState(null);
+  const [result, setResult] = useState([]);
+  const [nums, setNums] = useState([]);
+  const [combinations, setCombinations] = useState([])
+  const [valueTicket, setValueTicket] = useState("")
+  const [resultTicket, setResultTicket] = useState("")
+  const [state, setState] = useState(0) // 0: inicio, 1: jugando
+
+  const mapData = {
+    1: ["/bingoPeliculas.png", "/songsPeliculas.csv", 0],
+    2: ["/bingoActual.png", "/songsActual.csv", 0],
+    3: ["/bingoAntiguo.png", "/songsAntiguo.csv", 0]
+  }
+  const [type, setType] = useState(1)
+  const iframeRef = useRef(null);
+
+  useEffect(() => {
+
+  }, [url]);
+
+  const rand = (result) => {
+    if (nums.length >= result.length - 1) {
+      return null;
+    }
+
+    const n = Math.floor(Math.random() * (result.length - 1)) + 1;
+    if (nums.includes(n)) {
+      return rand(result);
+    }
+
+    return n;
+  };
+
+  const next = async () => {
+    if (state === 0) {
+      const r = await read(mapData[type][1])
+      setResult(r);
+      const ids = r.slice(1).map(r => parseInt(r[0]))
+      setCombinations(getCombinations(ids, 10))
+
+      setState(1)
+
+      const num = rand(r);
+      nums.push(num);
+      if (!num) {
+        return;
+      }
+      setUrl(r[num][2]);
+
+      return
+    }
+
+    const num = rand(result);
+    nums.push(num);
+    if (!num) {
+      return;
+    }
+    setUrl(result[num][2]);
+  };
+
+  const check = () => {
+    const valuesIncorrect = combinations[valueTicket].filter(value => !nums.includes(value))
+    setResultTicket(valuesIncorrect.length > 0 ? valuesIncorrect : ["Ganador!"])
+  }
+
   return (
-    <main className={styles.main}>
-      <div className={styles.description}>
-        <p>
-          Get started by editing&nbsp;
-          <code className={styles.code}>src/app/page.js</code>
-        </p>
-        <div>
-          <a
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{" "}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className={styles.vercelLogo}
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
+    <div style={{ display: "flex", justifyContent: "center" }}>
+      {state === 1 && <div class="column1">
+        <div style={{ display: "flex", flexDirection: "column" }}>
+          <h2>Cancion actual</h2>
+          {url && (
+            <iframe
+              ref={iframeRef}
+              width="560"
+              height="315"
+              src={url}
+              title="YouTube video player"
+              frameborder="0"
+              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+              referrerpolicy="strict-origin-when-cross-origin" allowfullscreen>
+            </iframe>
+          )}
+          <div style={{ display: "flex", justifyContent: "space-around", marginTop: "15px", marginBottom: "25px" }}>
+            <button onClick={() => iframeRef.current.src = iframeRef.current.src}>Refrescar</button>
+            <button onClick={next}>Siguiente</button>
+          </div>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <input type="number" value={valueTicket} onChange={e => setValueTicket(e.target.value)}></input>
+            <button onClick={check} style={{ marginLeft: "5px", marginRight: "5px"}}>Comprobar</button>
+            <button onClick={() => setResultTicket("")}>Limpiar</button>
+            <div>{resultTicket ? resultTicket.join("-") : ""}</div>
+          </div>
         </div>
-      </div>
-
-      <div className={styles.center}>
-        <Image
-          className={styles.logo}
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className={styles.grid}>
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Docs <span>-&gt;</span>
-          </h2>
-          <p>Find in-depth information about Next.js features and API.</p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Learn <span>-&gt;</span>
-          </h2>
-          <p>Learn about Next.js in an interactive course with&nbsp;quizzes!</p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Templates <span>-&gt;</span>
-          </h2>
-          <p>Explore starter templates for Next.js.</p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className={styles.card}
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2>
-            Deploy <span>-&gt;</span>
-          </h2>
-          <p>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
-      </div>
-    </main>
+      </div>}
+      {state === 1 && <div class="column2" style={{ width: "560px", marginLeft: "25px" }}>
+        <h2>Lista juego</h2>
+        <ul>
+          {nums.map(n => <li>{n + "-" + result[n][1]}</li>)}
+        </ul>
+      </div>}
+      {state === 0 && <div style={{ display: "flex", flexDirection: "column", alignItems: "center", height: "200px", justifyContent: "space-around" }}>
+        <h1>BINGO MUSICAL</h1>
+        <select value={type} onChange={e => setType(e.target.value)}>
+          <option value={1}>Bingo Peliculas</option>
+          <option value={2}>Bingo Actual</option>
+          <option value={3}>Bingo Antiguo</option>
+        </select>
+        <button onClick={next}>Jugar</button>
+        <Link href="/ticket">Ticket</Link>
+      </div>}
+    </div>
   );
 }
